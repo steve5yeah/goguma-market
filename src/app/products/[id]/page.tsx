@@ -10,6 +10,7 @@ import {
 } from "@/lib/products";
 import DeleteButton from "../DeleteButton";
 import StatusButtons from "../StatusButtons";
+import FavoriteButton from "../FavoriteButton";
 
 type Params = Promise<{ id: string }>;
 
@@ -17,7 +18,7 @@ async function loadProduct(id: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("goguma_products")
-    .select("*, goguma_profiles(nickname, region)")
+    .select("*, goguma_profiles!goguma_products_seller_profile_fkey(nickname, region)")
     .eq("id", id)
     .maybeSingle();
   return data as (ProductWithSeller & { goguma_profiles: { nickname: string; region: string | null } | null }) | null;
@@ -44,6 +45,18 @@ export default async function ProductDetailPage({ params }: { params: Params }) 
   } = await supabase.auth.getUser();
   const isOwner = user?.id === product.seller_id;
   const status = STATUSES[product.status];
+
+  // 내가 이 글을 찜했는지 확인합니다. (찜 기록은 본인 것만 읽을 수 있습니다)
+  let isFavorited = false;
+  if (user) {
+    const { data: fav } = await supabase
+      .from("goguma_favorites")
+      .select("product_id")
+      .eq("user_id", user.id)
+      .eq("product_id", product.id)
+      .maybeSingle();
+    isFavorited = Boolean(fav);
+  }
 
   return (
     <article className="mx-auto max-w-2xl space-y-6">
@@ -111,6 +124,10 @@ export default async function ProductDetailPage({ params }: { params: Params }) 
 
       {isOwner ? (
         <div className="space-y-4 rounded-2xl border border-goguma-200 bg-goguma-50 p-4">
+          <p className="text-sm text-soil-600">
+            이 글을 <span className="font-bold text-goguma-700">{product.favorite_count}명</span>
+            이 찜했습니다.
+          </p>
           <StatusButtons productId={product.id} status={product.status} />
           <div className="flex gap-2 border-t border-goguma-200 pt-4">
             <Link
@@ -123,8 +140,24 @@ export default async function ProductDetailPage({ params }: { params: Params }) 
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-soil-200 p-4 text-center text-sm text-soil-600">
-          채팅 기능은 3단계에서 만듭니다. 지금은 글만 주고받을 수 있어요.
+        <div className="space-y-3">
+          <div className="flex gap-3">
+            <FavoriteButton
+              productId={product.id}
+              isFavorited={isFavorited}
+              count={product.favorite_count}
+            />
+            <button
+              type="button"
+              disabled
+              className="flex-1 cursor-not-allowed rounded-xl bg-goguma-300 px-4 py-3 text-sm font-semibold text-white"
+            >
+              채팅하기 (준비 중)
+            </button>
+          </div>
+          <p className="text-center text-xs text-soil-400">
+            채팅은 3단계 나머지 작업에서 만듭니다.
+          </p>
         </div>
       )}
     </article>

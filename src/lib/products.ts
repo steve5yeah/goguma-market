@@ -34,6 +34,7 @@ export type Product = {
   status: ProductStatus;
   image_url: string | null;
   image_path: string | null;
+  favorite_count: number;
   created_at: string;
   updated_at: string;
 };

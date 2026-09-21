@@ -237,3 +237,44 @@ export async function updateStatus(
   revalidatePath(`/products/${id}`);
   revalidatePath("/");
 }
+
+/* ------------------------------- 찜하기 ------------------------------ */
+
+/**
+ * 하트를 누를 때마다 찜을 켰다 껐다 합니다.
+ * 찜 개수(goguma_products.favorite_count)는 DB 트리거가 알아서 맞춰 줍니다.
+ */
+export async function toggleFavorite(
+  productId: string,
+  isFavorited: boolean,
+): Promise<void> {
+  if (!productId) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=/products/${productId}`);
+
+  if (isFavorited) {
+    await supabase
+      .from("goguma_favorites")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("product_id", productId);
+  } else {
+    // 이미 찜한 상태에서 또 눌러도 오류가 나지 않도록 무시하고 넘어갑니다.
+    await supabase
+      .from("goguma_favorites")
+      .upsert(
+        { user_id: user.id, product_id: productId },
+        { onConflict: "user_id,product_id", ignoreDuplicates: true },
+      );
+  }
+
+  revalidatePath("/products");
+  revalidatePath(`/products/${productId}`);
+  revalidatePath("/favorites");
+  revalidatePath("/mypage");
+  revalidatePath("/");
+}

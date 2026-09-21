@@ -6,7 +6,8 @@
 
 - **1단계 — 회원가입 / 로그인 / 로그아웃** ✅
 - **2단계 — 거래글 등록 · 목록 · 상세 · 수정 · 삭제** ✅
-- 3단계 — 찜하기, 채팅 (예정)
+- **3단계(1) — 찜하기** ✅
+- 3단계(2) — 채팅 (예정)
 
 ## 화면
 
@@ -19,6 +20,7 @@
 | `/products/[id]/edit` | 글 수정 (글쓴이만) |
 | `/signup` `/login` | 회원가입 · 로그인 |
 | `/mypage` | 내 정보 + 내 판매글 (로그인 필요) |
+| `/favorites` | 찜한 물건 (로그인 필요) |
 
 ## 처음 실행하기
 
@@ -41,12 +43,16 @@ npm run dev
 | 테이블 | 내용 |
 | --- | --- |
 | `goguma_profiles` | 사용자 프로필 (`id` = `auth.users.id`, `nickname`, `region`, `avatar_url`) |
-| `goguma_products` | 거래글 (`seller_id`, `title`, `description`, `price`, `category`, `region`, `status`, `image_url`, `image_path`) |
+| `goguma_products` | 거래글 (`seller_id`, `title`, `description`, `price`, `category`, `region`, `status`, `image_url`, `image_path`, `favorite_count`) |
+| `goguma_favorites` | 찜 기록 (`user_id` + `product_id`가 기본키라 같은 글을 두 번 찜할 수 없음) |
 
 - 가입하면 트리거(`goguma_on_auth_user_created`)가 프로필을 자동으로 만듭니다.
 - `status`는 `selling` · `reserved` · `sold` 셋 중 하나입니다.
 - `price`가 `0`이면 화면에 **나눔**으로 나옵니다.
-- `seller_id`에는 외래키가 둘 붙어 있습니다 — `auth.users`(진짜 주인)와 `goguma_profiles`(PostgREST가 `select("*, goguma_profiles(nickname)")`로 닉네임을 붙여 오기 위해).
+- `seller_id`에는 외래키가 둘 붙어 있습니다 — `auth.users`(진짜 주인)와 `goguma_profiles`(닉네임을 함께 읽어 오기 위해).
+- 닉네임을 붙여 읽을 때는 `goguma_profiles!goguma_products_seller_profile_fkey(nickname)` 처럼 **어느 외래키를 쓸지 이름을 적어 줘야** 합니다. `goguma_favorites`가 생기면서 거래글↔프로필을 잇는 길이 둘이 되어, 그냥 `goguma_profiles(...)`라고 쓰면 PostgREST가 `PGRST201`(관계가 모호함) 오류를 냅니다.
+- 찜 개수는 `goguma_favorites`에 행이 들고 날 때 트리거가 `favorite_count`에 세어 넣습니다. 찜 기록 자체는 본인만 읽을 수 있지만 개수는 누구나 봐야 하기 때문입니다.
+- 찜 개수만 바뀔 때는 `updated_at`을 건드리지 않습니다(트리거의 `when` 조건). 안 그러면 남이 찜할 때마다 글이 "수정됨"으로 표시됩니다.
 
 ### RLS
 
@@ -54,6 +60,7 @@ npm run dev
 | --- | --- | --- | --- |
 | `goguma_profiles` | 누구나 | 본인 | 본인 |
 | `goguma_products` | 누구나 | 로그인 사용자(자기 글) | 글쓴이만 |
+| `goguma_favorites` | **본인 것만** | 본인 | 본인 |
 
 남의 글은 UI에서 버튼이 안 보일 뿐 아니라 DB에서도 막힙니다. 다른 사용자로 `update`/`delete`를 직접 날려도 0행이 바뀝니다.
 
@@ -72,7 +79,7 @@ npm run dev
 
 ```
 src/
-├─ middleware.ts                세션 갱신 + /mypage, /products/new 보호
+├─ middleware.ts                세션 갱신 + /mypage, /favorites, /products/new 보호
 ├─ lib/
 │  ├─ products.ts               카테고리·상태 목록, 가격/시간 표시 함수
 │  └─ supabase/                 client · server · middleware 클라이언트
@@ -80,12 +87,12 @@ src/
 │  ├─ layout.tsx  globals.css   공통 틀과 고구마 색 팔레트
 │  ├─ page.tsx                  홈
 │  ├─ auth/                     actions.ts (가입·로그인·로그아웃) + 메일 링크 라우트
-│  ├─ login/  signup/  mypage/
+│  ├─ login/  signup/  mypage/  favorites/
 │  └─ products/
-│     ├─ actions.ts             createProduct · updateProduct · deleteProduct · updateStatus
+│     ├─ actions.ts             createProduct · updateProduct · deleteProduct · updateStatus · toggleFavorite
 │     ├─ page.tsx               목록
 │     ├─ ProductCard.tsx  ProductForm.tsx  ImageUploader.tsx
-│     ├─ DeleteButton.tsx  StatusButtons.tsx
+│     ├─ DeleteButton.tsx  StatusButtons.tsx  FavoriteButton.tsx
 │     ├─ new/page.tsx
 │     └─ [id]/page.tsx  [id]/edit/page.tsx
 └─ components/                  SiteHeader · SubmitButton · GogumaLogo
@@ -106,11 +113,11 @@ src/
 - **사진은 글 1개당 1장**입니다. 여러 장은 나중에 `goguma_product_images` 같은 표를 따로 두는 쪽이 깔끔합니다.
 - **버려진 사진 파일** — 사진만 올리고 글을 저장하지 않으면 그 파일은 Storage에 남습니다. 나중에 주기적으로 청소하는 작업이 필요합니다.
 - **닉네임 중복**은 아직 막지 않았습니다.
-- 조회수, 찜, 채팅은 아직 없습니다.
+- 조회수와 채팅은 아직 없습니다. 채팅은 3단계 나머지 작업입니다.
 
 ## 샘플 데이터
 
-동작 확인용으로 거래글 10개(판매중 8 · 예약중 1 · 거래완료 1)와 테스트 계정 2개(`테스트고구마`, `두번째고구마`)를 넣어 두었습니다.
+동작 확인용으로 거래글 여러 개와 테스트 계정 2개(`테스트고구마`, `두번째고구마`)를 넣어 두었습니다.
 
 계정 비밀번호는 공개 저장소에 적지 않습니다. Supabase 대시보드 **Authentication → Users**에서 확인하거나 비밀번호를 재설정하세요. 필요 없어지면 같은 화면에서 계정을 지우면 됩니다.
 

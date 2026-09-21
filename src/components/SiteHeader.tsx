@@ -35,6 +35,14 @@ export default async function SiteHeader() {
           >
             중고거래
           </Link>
+          {user && (
+            <Link
+              href="/favorites"
+              className="hidden text-sm font-medium text-soil-600 transition hover:text-goguma-600 sm:block"
+            >
+              찜한 물건
+            </Link>
+          )}
         </div>
 
         <nav className="flex items-center gap-2 text-sm">

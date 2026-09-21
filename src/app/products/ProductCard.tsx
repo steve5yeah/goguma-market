@@ -54,6 +54,9 @@ export default function ProductCard({ product }: { product: ProductWithSeller })
           {product.goguma_profiles?.nickname ?? "탈퇴한 사용자"}
           {product.region ? ` · ${product.region}` : ""} · {timeAgo(product.created_at)}
         </p>
+        {product.favorite_count > 0 && (
+          <p className="mt-1 text-xs text-soil-400">❤️ {product.favorite_count}</p>
+        )}
       </div>
     </Link>
   );

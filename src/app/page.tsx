@@ -12,7 +12,7 @@ export default async function HomePage() {
 
   const { data } = await supabase
     .from("goguma_products")
-    .select("*, goguma_profiles(nickname)")
+    .select("*, goguma_profiles!goguma_products_seller_profile_fkey(nickname)")
     .neq("status", "sold")
     .order("created_at", { ascending: false })
     .limit(8);

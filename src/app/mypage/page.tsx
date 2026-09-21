@@ -16,7 +16,7 @@ export default async function MyPage() {
   // middleware가 이미 막지만, 서버 컴포넌트에서도 한 번 더 확인합니다.
   if (!user) redirect("/login?next=/mypage");
 
-  const [{ data: profile }, { data: listings }] = await Promise.all([
+  const [{ data: profile }, { data: listings }, { count: favoriteCount }] = await Promise.all([
     supabase
       .from("goguma_profiles")
       .select("nickname, region, created_at")
@@ -24,9 +24,14 @@ export default async function MyPage() {
       .maybeSingle(),
     supabase
       .from("goguma_products")
-      .select("*, goguma_profiles(nickname)")
+      .select("*, goguma_profiles!goguma_products_seller_profile_fkey(nickname)")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false }),
+    // head: true 는 "내용은 필요 없고 개수만 알려 줘"라는 뜻입니다.
+    supabase
+      .from("goguma_favorites")
+      .select("product_id", { count: "exact", head: true })
+      .eq("user_id", user.id),
   ]);
 
   const products = (listings ?? []) as ProductWithSeller[];
@@ -65,9 +70,11 @@ export default async function MyPage() {
             <dd className="mt-0.5 font-bold text-soil-900">{sold}개</dd>
           </div>
           <div>
-            <dt className="text-soil-600">동네</dt>
-            <dd className="mt-0.5 font-medium text-soil-800">
-              {profile?.region ?? "미설정"}
+            <dt className="text-soil-600">찜한 물건</dt>
+            <dd className="mt-0.5 font-bold text-soil-900">
+              <Link href="/favorites" className="hover:underline">
+                {favoriteCount ?? 0}개 →
+              </Link>
             </dd>
           </div>
           <div>

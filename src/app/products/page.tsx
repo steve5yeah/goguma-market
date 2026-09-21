@@ -19,7 +19,7 @@ export default async function ProductListPage({
 
   let query = supabase
     .from("goguma_products")
-    .select("*, goguma_profiles(nickname)")
+    .select("*, goguma_profiles!goguma_products_seller_profile_fkey(nickname)")
     .order("created_at", { ascending: false })
     .limit(60);
 

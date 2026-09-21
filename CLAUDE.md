@@ -57,7 +57,7 @@ Claude는 아래 규칙을 항상 지켜 주세요.
 | 화면 만드는 도구 | **Next.js 15** (App Router) + React 19 + TypeScript |
 | 디자인 | **Tailwind CSS v4** — 색은 `src/app/globals.css`의 `@theme`에 정의 (`goguma-*`, `skin-*`, `soil-*`) |
 | 회원·데이터 보관 | **Supabase** (로그인, 데이터베이스, 파일 저장) |
-| 인터넷 공개(배포) | **Vercel** — 아직 연결 전 |
+| 인터넷 공개(배포) | **Vercel** — https://goguma-market-teal.vercel.app (GitHub: steve5yeah/goguma-market) |
 | 실행 | `npm run dev` → http://localhost:3000 |
 
 ### Supabase 주의사항 ⚠️
@@ -71,7 +71,7 @@ Claude는 아래 규칙을 항상 지켜 주세요.
 
 ```
 src/
-├─ middleware.ts          로그인 상태 유지 + /mypage 보호
+├─ middleware.ts          로그인 상태 유지 + /mypage, /favorites, /products/new 보호
 ├─ lib/supabase/          Supabase 연결 코드 (client / server / middleware)
 ├─ app/
 │  ├─ layout.tsx          모든 화면 공통 틀 (헤더·푸터)
@@ -79,6 +79,8 @@ src/
 │  ├─ page.tsx            홈
 │  ├─ auth/               가입·로그인·로그아웃 처리
 │  ├─ login/ signup/      로그인·가입 화면
+│  ├─ products/           거래글 목록·상세·등록·수정 (찜하기 포함)
+│  ├─ favorites/          찜한 물건
 │  └─ mypage/             로그인해야 보이는 내 정보
 └─ components/            여러 화면에서 같이 쓰는 조각들
 ```
@@ -87,8 +89,9 @@ src/
 
 - [x] **1단계** — 회원가입 / 로그인 / 로그아웃
 - [x] **2단계** — 상품 등록 · 목록 · 상세 · 수정 · 삭제 (사진은 Supabase Storage)
-- [ ] **3단계** — 찜하기, 동네 설정, 채팅
-- [ ] **배포** — Vercel에 올려서 인터넷에 공개
+- [x] **3단계(1)** — 찜하기
+- [ ] **3단계(2)** — 채팅, 동네 설정
+- [x] **배포** — Vercel에 올려서 인터넷에 공개
 
 ### git 커밋
 
