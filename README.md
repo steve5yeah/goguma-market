@@ -116,12 +116,22 @@ src/
 
 ## 환경 변수
 
-`.env.local` (git에 올라가지 않습니다)
+로컬은 `.env.local`(git에 올라가지 않습니다), 배포는 Vercel → Settings → Environment Variables. **이름은 양쪽이 똑같습니다.**
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
+SUPABASE_URL=https://<프로젝트>.supabase.co
+SUPABASE_ANON_KEY=sb_publishable_...
+SITE_URL=http://localhost:3000        # 배포 환경에서는 실제 주소
 ```
 
-배포할 때는 Supabase의 Authentication → URL Configuration에서 **Site URL**과 **Redirect URLs**에 실제 주소를 넣어 주세요.
+### NEXT_PUBLIC_ 접두사는 어디 갔나
+
+브라우저에서 돌아가는 코드는 `NEXT_PUBLIC_`이 붙은 이름만 읽을 수 있습니다. 우리 앱은 사진을 올릴 때 브라우저가 Supabase에 직접 접속하므로 그 값이 필요합니다.
+
+그래서 접두사 없이 넣어 두고, `next.config.ts`의 `env` 항목에서 `NEXT_PUBLIC_*` 이름으로 옮겨 담습니다. 코드는 계속 `process.env.NEXT_PUBLIC_SUPABASE_URL`을 읽고, 값은 `SUPABASE_URL`에서 옵니다. (예전처럼 `NEXT_PUBLIC_`을 붙여 넣어도 그대로 동작합니다.)
+
+> `NEXT_PUBLIC_`은 보안 설정이 아니라 "브라우저에도 내보낸다"는 표시일 뿐입니다. 접두사를 떼도 값이 숨겨지지는 않습니다. `SUPABASE_ANON_KEY`는 원래 공개돼도 되는 publishable 키이고, 데이터 보호는 RLS가 담당합니다. 절대 공개하면 안 되는 건 `service_role` 키인데 이 프로젝트에서는 쓰지 않습니다.
+
+### 배포 후 할 일
+
+Supabase → Authentication → URL Configuration에서 **Site URL**에 배포 주소를, **Redirect URLs**에 `https://<배포주소>/**`를 넣어 주세요.

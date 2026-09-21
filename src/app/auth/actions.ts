@@ -35,7 +35,9 @@ function toKorean(message: string): string {
 
 /** 메일 인증 링크가 돌아올 주소 */
 async function siteOrigin(): Promise<string> {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  // 서버에서는 접두사 없는 이름을 그대로 읽을 수 있습니다.
+  const configured = process.env.SITE_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  if (configured) return configured;
   const h = await headers();
   const host = h.get("host") ?? "localhost:3000";
   const proto = host.startsWith("localhost") ? "http" : "https";
