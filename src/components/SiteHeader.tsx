@@ -21,17 +21,31 @@ export default async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-soil-200/70 bg-goguma-50/85 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <GogumaLogo />
-          <span className="text-lg font-bold tracking-tight text-skin-700">
-            고구마마켓
-          </span>
-        </Link>
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
+        <div className="flex items-center gap-5">
+          <Link href="/" className="flex items-center gap-2">
+            <GogumaLogo />
+            <span className="text-lg font-bold tracking-tight text-skin-700">
+              고구마마켓
+            </span>
+          </Link>
+          <Link
+            href="/products"
+            className="hidden text-sm font-medium text-soil-600 transition hover:text-goguma-600 sm:block"
+          >
+            중고거래
+          </Link>
+        </div>
 
         <nav className="flex items-center gap-2 text-sm">
           {user ? (
             <>
+              <Link
+                href="/products/new"
+                className="rounded-lg bg-goguma-500 px-3 py-2 font-semibold text-white transition hover:bg-goguma-600"
+              >
+                판매하기
+              </Link>
               <Link
                 href="/mypage"
                 className="rounded-lg px-3 py-2 font-medium text-soil-800 transition hover:bg-goguma-100"

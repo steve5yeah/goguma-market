@@ -2,87 +2,120 @@
 
 우리 동네 중고거래 웹사이트. Next.js(App Router) + Supabase로 한 단계씩 만들어 갑니다.
 
-## 지금까지 만든 것 — 1단계: 회원가입 / 로그인 / 로그아웃
+## 진행 상황
+
+- **1단계 — 회원가입 / 로그인 / 로그아웃** ✅
+- **2단계 — 거래글 등록 · 목록 · 상세 · 수정 · 삭제** ✅
+- 3단계 — 찜하기, 채팅 (예정)
+
+## 화면
 
 | 경로 | 내용 |
 | --- | --- |
-| `/` | 홈 (로그인 여부에 따라 버튼이 바뀝니다) |
-| `/signup` | 이메일 · 닉네임 · 비밀번호로 가입 |
-| `/login` | 로그인 |
-| `/mypage` | 로그인해야 볼 수 있는 내 정보 (비로그인 시 `/login`으로 이동) |
-| 헤더 로그아웃 | 어느 화면에서든 로그아웃 |
+| `/` | 홈 — 방금 올라온 물건 8개 |
+| `/products` | 목록 — 검색, 카테고리 필터, 거래완료 숨기기 |
+| `/products/new` | 판매하기 (로그인 필요) |
+| `/products/[id]` | 상세 — 글쓴이에게만 상태 변경·수정·삭제 버튼 |
+| `/products/[id]/edit` | 글 수정 (글쓴이만) |
+| `/signup` `/login` | 회원가입 · 로그인 |
+| `/mypage` | 내 정보 + 내 판매글 (로그인 필요) |
 
 ## 처음 실행하기
 
-1. **Node.js 설치** (아직 없다면)
+```
+npm install
+npm run dev
+```
 
-   ```
-   winget install OpenJS.NodeJS.LTS
-   ```
+브라우저에서 http://localhost:3000
 
-   설치 후 터미널을 새로 열어야 `node`, `npm` 명령이 잡힙니다.
+> **PowerShell에서 `npm`이 막힌다면** — Windows PowerShell 기본 실행 정책(`Restricted`)이 `npm.ps1` 실행을 막습니다.
+> `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` 로 풀거나, `npm.cmd run dev` 처럼 `.cmd`를 직접 부르세요.
 
-2. **패키지 설치 후 실행**
+## Supabase
 
-   ```
-   npm install
-   npm run dev
-   ```
+가계부와 **같은 프로젝트**(`gagyebu`, `fpffmmbuiomcfdrjxnck`)를 씁니다. 테이블 이름이 겹치지 않도록 고구마마켓 것에는 `goguma_` 접두사를 붙였습니다. 가계부 테이블(`entries`, `ledger_meta`)은 건드리지 않습니다.
 
-3. 브라우저에서 http://localhost:3000
-
-## Supabase 설정
-
-가계부와 **같은 프로젝트**(`gagyebu`, `fpffmmbuiomcfdrjxnck`)를 씁니다. 테이블 이름이 겹치지 않도록 고구마마켓 테이블에는 `goguma_` 접두사를 붙였습니다.
+### 테이블
 
 | 테이블 | 내용 |
 | --- | --- |
-| `goguma_profiles` | 사용자 프로필 (`id`는 `auth.users.id`, `nickname`, `region`, `avatar_url`) |
+| `goguma_profiles` | 사용자 프로필 (`id` = `auth.users.id`, `nickname`, `region`, `avatar_url`) |
+| `goguma_products` | 거래글 (`seller_id`, `title`, `description`, `price`, `category`, `region`, `status`, `image_url`, `image_path`) |
 
-- 가입하면 `auth.users`에 행이 생기고, **트리거**(`goguma_on_auth_user_created`)가 `goguma_profiles`에 프로필을 자동으로 만듭니다.
-- RLS: 프로필 조회는 누구나, 수정·생성은 본인만.
-- 가계부 테이블(`entries`, `ledger_meta`)은 건드리지 않았습니다.
+- 가입하면 트리거(`goguma_on_auth_user_created`)가 프로필을 자동으로 만듭니다.
+- `status`는 `selling` · `reserved` · `sold` 셋 중 하나입니다.
+- `price`가 `0`이면 화면에 **나눔**으로 나옵니다.
+- `seller_id`에는 외래키가 둘 붙어 있습니다 — `auth.users`(진짜 주인)와 `goguma_profiles`(PostgREST가 `select("*, goguma_profiles(nickname)")`로 닉네임을 붙여 오기 위해).
+
+### RLS
+
+| | 조회 | 생성 | 수정 · 삭제 |
+| --- | --- | --- | --- |
+| `goguma_profiles` | 누구나 | 본인 | 본인 |
+| `goguma_products` | 누구나 | 로그인 사용자(자기 글) | 글쓴이만 |
+
+남의 글은 UI에서 버튼이 안 보일 뿐 아니라 DB에서도 막힙니다. 다른 사용자로 `update`/`delete`를 직접 날려도 0행이 바뀝니다.
+
+### Storage
+
+- 버킷 `goguma-products` (공개 읽기, 5MB, jpeg/png/webp/gif만)
+- 경로는 `<사용자 id>/<uuid>.<확장자>` — 정책상 **자기 폴더에만** 올리고 지울 수 있습니다.
+- 사진은 서버 액션을 거치지 않고 **브라우저에서 Storage로 곧장** 올라갑니다. 서버 액션 본문은 기본 1MB 제한이 있어 사진을 통째로 보내기엔 좁기 때문입니다.
+- 글을 지우면 붙어 있던 사진 파일도 함께 지웁니다. 사진을 바꿔 저장하면 예전 파일을 지웁니다.
 
 ### 메일 인증
 
-이 프로젝트는 지금 **Confirm email이 꺼져 있어서** 가입하면 바로 로그인 상태가 됩니다. 공부하기 편한 설정입니다.
-
-나중에 켜고 싶다면 Authentication → Sign In / Providers → Email → **Confirm email**. 켜면 가입 후 "메일을 확인해 주세요" 화면이 뜨고, 메일 링크는 `/auth/callback`으로 돌아옵니다 (코드는 이미 두 경우를 모두 처리합니다).
-
-배포할 때는 Authentication → URL Configuration의 **Site URL**과 **Redirect URLs**에 실제 주소를 넣어 주세요.
+지금 **Confirm email이 꺼져 있어서** 가입하면 바로 로그인됩니다. 켜고 싶다면 Authentication → Sign In / Providers → Email → **Confirm email**. 켜진 경우의 메일 링크 처리는 `/auth/callback`에 이미 만들어 두었습니다.
 
 ## 폴더 구조
 
 ```
 src/
-├─ middleware.ts              로그인 세션 갱신 + /mypage 보호
-├─ lib/supabase/
-│  ├─ client.ts               브라우저용 클라이언트
-│  ├─ server.ts               서버 컴포넌트 · 서버 액션용
-│  └─ middleware.ts           세션 갱신 로직
+├─ middleware.ts                세션 갱신 + /mypage, /products/new 보호
+├─ lib/
+│  ├─ products.ts               카테고리·상태 목록, 가격/시간 표시 함수
+│  └─ supabase/                 client · server · middleware 클라이언트
 ├─ app/
-│  ├─ layout.tsx              헤더 · 푸터 공통 틀
-│  ├─ globals.css             고구마 색 팔레트 (@theme)
-│  ├─ page.tsx                홈
-│  ├─ auth/
-│  │  ├─ actions.ts           signUp · signIn · signOut 서버 액션
-│  │  ├─ callback/route.ts    메일 링크(?code=) 처리
-│  │  └─ confirm/route.ts     메일 링크(token_hash 방식) 처리
-│  ├─ login/                  page.tsx + LoginForm.tsx
-│  ├─ signup/                 page.tsx + SignupForm.tsx
-│  └─ mypage/page.tsx         보호된 페이지
-└─ components/                SiteHeader · SubmitButton · GogumaLogo
+│  ├─ layout.tsx  globals.css   공통 틀과 고구마 색 팔레트
+│  ├─ page.tsx                  홈
+│  ├─ auth/                     actions.ts (가입·로그인·로그아웃) + 메일 링크 라우트
+│  ├─ login/  signup/  mypage/
+│  └─ products/
+│     ├─ actions.ts             createProduct · updateProduct · deleteProduct · updateStatus
+│     ├─ page.tsx               목록
+│     ├─ ProductCard.tsx  ProductForm.tsx  ImageUploader.tsx
+│     ├─ DeleteButton.tsx  StatusButtons.tsx
+│     ├─ new/page.tsx
+│     └─ [id]/page.tsx  [id]/edit/page.tsx
+└─ components/                  SiteHeader · SubmitButton · GogumaLogo
 ```
 
 ## 색
 
-군고구마에서 가져왔습니다. `globals.css`의 `@theme`에 정의되어 있어 `bg-goguma-500`처럼 바로 씁니다.
+군고구마에서 가져왔습니다. `globals.css`의 `@theme`에 정의돼 있어 `bg-goguma-500`처럼 바로 씁니다.
 
 | 이름 | 쓰임 | 대표 색 |
 | --- | --- | --- |
 | `goguma-*` | 속살 주황 — 버튼, 강조 | `#e87f2a` (500) |
-| `skin-*` | 껍질 자주 — 로고, 제목 | `#6d2f55` (700) |
+| `skin-*` | 껍질 자주 — 로고, 예약중 | `#6d2f55` (700) |
 | `soil-*` | 흙 — 글자, 테두리 | `#3d332b` (800) |
+
+## 알아 둘 점
+
+- **사진은 글 1개당 1장**입니다. 여러 장은 나중에 `goguma_product_images` 같은 표를 따로 두는 쪽이 깔끔합니다.
+- **버려진 사진 파일** — 사진만 올리고 글을 저장하지 않으면 그 파일은 Storage에 남습니다. 나중에 주기적으로 청소하는 작업이 필요합니다.
+- **닉네임 중복**은 아직 막지 않았습니다.
+- 조회수, 찜, 채팅은 아직 없습니다.
+
+## 테스트 계정
+
+| 이메일 | 비밀번호 | 닉네임 |
+| --- | --- | --- |
+| `goguma.test@gmail.com` | `goguma1234` | 테스트고구마 |
+| `goguma.test2@gmail.com` | `goguma1234` | 두번째고구마 |
+
+필요 없으면 Supabase 대시보드 Authentication → Users에서 지우세요.
 
 ## 환경 변수
 
@@ -94,16 +127,4 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-## 테스트 계정
-
-동작 확인용으로 두 개 만들어 뒀습니다. 필요 없으면 Supabase 대시보드 Authentication → Users에서 지우세요.
-
-| 이메일 | 비밀번호 | 닉네임 |
-| --- | --- | --- |
-| `goguma.test@gmail.com` | `goguma1234` | 테스트고구마 |
-| `goguma.test2@gmail.com` | `goguma1234` | 두번째고구마 |
-
-## 다음 단계 (예정)
-
-- 2단계 — 상품 등록 · 목록 · 상세 (이미지는 Supabase Storage)
-- 3단계 — 찜하기, 동네 설정, 채팅
+배포할 때는 Supabase의 Authentication → URL Configuration에서 **Site URL**과 **Redirect URLs**에 실제 주소를 넣어 주세요.

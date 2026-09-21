@@ -1,12 +1,23 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import GogumaLogo from "@/components/GogumaLogo";
+import ProductCard from "./products/ProductCard";
+import type { ProductWithSeller } from "@/lib/products";
 
 export default async function HomePage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const { data } = await supabase
+    .from("goguma_products")
+    .select("*, goguma_profiles(nickname)")
+    .neq("status", "sold")
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  const products = (data ?? []) as ProductWithSeller[];
 
   return (
     <div className="space-y-12">
@@ -25,30 +36,58 @@ export default async function HomePage() {
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/products"
+            className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-goguma-700 transition hover:bg-goguma-50"
+          >
+            물건 구경하기
+          </Link>
           {user ? (
             <Link
-              href="/mypage"
-              className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-goguma-700 transition hover:bg-goguma-50"
+              href="/products/new"
+              className="rounded-xl border border-white/60 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
             >
-              내 정보 보기
+              판매하기
             </Link>
           ) : (
-            <>
-              <Link
-                href="/signup"
-                className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-goguma-700 transition hover:bg-goguma-50"
-              >
-                회원가입하기
-              </Link>
-              <Link
-                href="/login"
-                className="rounded-xl border border-white/60 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                로그인
-              </Link>
-            </>
+            <Link
+              href="/signup"
+              className="rounded-xl border border-white/60 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            >
+              회원가입
+            </Link>
           )}
         </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-end justify-between">
+          <h2 className="text-lg font-bold text-soil-800">방금 올라온 물건</h2>
+          <Link href="/products" className="text-sm text-soil-600 hover:underline">
+            전체 보기 →
+          </Link>
+        </div>
+
+        {products.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-soil-200 px-4 py-14 text-center">
+            <p className="text-3xl">🍠</p>
+            <p className="mt-3 text-soil-600">아직 올라온 물건이 없습니다.</p>
+            <Link
+              href="/products/new"
+              className="mt-4 inline-block rounded-xl bg-goguma-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-goguma-600"
+            >
+              첫 물건 올리기
+            </Link>
+          </div>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {products.map((p) => (
+              <li key={p.id}>
+                <ProductCard product={p} />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section>
@@ -56,15 +95,13 @@ export default async function HomePage() {
         <ol className="grid gap-3 sm:grid-cols-3">
           {[
             { step: "1단계", title: "회원가입 · 로그인", done: true },
-            { step: "2단계", title: "상품 등록과 목록", done: false },
+            { step: "2단계", title: "거래글 등록 · 수정 · 삭제", done: true },
             { step: "3단계", title: "채팅과 찜하기", done: false },
           ].map((s) => (
             <li
               key={s.step}
               className={`rounded-2xl border p-5 ${
-                s.done
-                  ? "border-goguma-300 bg-goguma-100/60"
-                  : "border-soil-200 bg-white"
+                s.done ? "border-goguma-300 bg-goguma-100/60" : "border-soil-200 bg-white"
               }`}
             >
               <p
