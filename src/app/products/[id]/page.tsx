@@ -12,6 +12,7 @@ import DeleteButton from "../DeleteButton";
 import StatusButtons from "../StatusButtons";
 import FavoriteButton from "../FavoriteButton";
 import ChatButton from "../ChatButton";
+import ViewCounter from "../ViewCounter";
 import { startChat } from "@/app/chat/actions";
 
 type Params = Promise<{ id: string }>;
@@ -62,6 +63,7 @@ export default async function ProductDetailPage({ params }: { params: Params }) 
 
   return (
     <article className="mx-auto max-w-2xl space-y-6">
+      <ViewCounter productId={product.id} />
       <Link href="/products" className="inline-block text-sm text-soil-600 hover:underline">
         ← 목록으로
       </Link>
@@ -88,7 +90,7 @@ export default async function ProductDetailPage({ params }: { params: Params }) 
         )}
       </div>
 
-      <div className="flex items-center gap-3 rounded-2xl border border-soil-200 bg-white p-4">
+      <div className="card flex items-center gap-3 p-4">
         <div className="flex size-11 items-center justify-center rounded-full bg-goguma-100 text-xl">
           🍠
         </div>
@@ -113,6 +115,8 @@ export default async function ProductDetailPage({ params }: { params: Params }) 
           {" · "}
           {timeAgo(product.created_at)}
           {product.updated_at !== product.created_at && " (수정됨)"}
+          {" · "}
+          조회 {product.view_count}
         </p>
         <h1 className="mt-1 text-2xl font-bold text-soil-900">{product.title}</h1>
         <p className="mt-2 text-2xl font-bold text-goguma-600">
@@ -127,14 +131,14 @@ export default async function ProductDetailPage({ params }: { params: Params }) 
       {isOwner ? (
         <div className="space-y-4 rounded-2xl border border-goguma-200 bg-goguma-50 p-4">
           <p className="text-sm text-soil-600">
-            이 글을 <span className="font-bold text-goguma-700">{product.favorite_count}명</span>
-            이 찜했습니다.
+            조회 <span className="font-bold text-soil-900">{product.view_count}</span>
+            {" · "}찜 <span className="font-bold text-goguma-700">{product.favorite_count}</span>
           </p>
           <StatusButtons productId={product.id} status={product.status} />
           <div className="flex gap-2 border-t border-goguma-200 pt-4">
             <Link
               href={`/products/${product.id}/edit`}
-              className="rounded-lg border border-soil-200 bg-white px-3 py-2 text-sm font-medium text-soil-600 transition hover:bg-soil-50"
+              className="btn btn-outline btn-sm"
             >
               수정
             </Link>

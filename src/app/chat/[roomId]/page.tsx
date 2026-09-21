@@ -78,7 +78,7 @@ export default async function ChatRoomPage({ params }: { params: Params }) {
       {product ? (
         <Link
           href={`/products/${product.id}`}
-          className="flex items-center gap-3 rounded-2xl border border-soil-200 bg-white p-3 transition hover:border-goguma-300"
+          className="card flex items-center gap-3 p-3 transition hover:border-goguma-300"
         >
           <div className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-goguma-100">
             {product.image_url ? (

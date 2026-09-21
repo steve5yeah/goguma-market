@@ -10,7 +10,7 @@ export default function ChatButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded-xl bg-goguma-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-goguma-600 disabled:bg-goguma-300"
+      className="btn btn-primary w-full py-3"
     >
       {pending ? "채팅방 여는 중…" : "채팅하기"}
     </button>

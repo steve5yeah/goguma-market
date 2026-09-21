@@ -5,17 +5,37 @@ import ProductCard from "./ProductCard";
 
 export const metadata = { title: "중고거래 — 고구마마켓" };
 
-type SearchParams = Promise<{ q?: string; category?: string; sold?: string }>;
+type SearchParams = Promise<{
+  q?: string;
+  category?: string;
+  sold?: string;
+  near?: string;
+}>;
 
 export default async function ProductListPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const { q = "", category = "", sold = "" } = await searchParams;
+  const { q = "", category = "", sold = "", near = "" } = await searchParams;
   const showSold = sold === "1";
+  const nearOnly = near === "1";
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // 내 동네 필터를 보여 주려면 내 프로필의 동네를 알아야 합니다.
+  let myRegion: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("goguma_profiles")
+      .select("region")
+      .eq("id", user.id)
+      .maybeSingle();
+    myRegion = profile?.region ?? null;
+  }
 
   let query = supabase
     .from("goguma_products")
@@ -24,7 +44,6 @@ export default async function ProductListPage({
     .limit(60);
 
   if (q.trim()) {
-    // 제목이나 설명에 검색어가 들어간 글
     const safe = q.trim().replace(/[%,()]/g, " ");
     query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%`);
   }
@@ -34,26 +53,41 @@ export default async function ProductListPage({
   if (!showSold) {
     query = query.neq("status", "sold");
   }
+  if (nearOnly && myRegion) {
+    query = query.ilike("region", `%${myRegion}%`);
+  }
 
   const { data, error } = await query;
   const products = (data ?? []) as ProductWithSeller[];
 
   const linkFor = (next: Record<string, string>) => {
     const params = new URLSearchParams();
-    const merged = { q, category, sold: showSold ? "1" : "", ...next };
+    const merged = {
+      q,
+      category,
+      sold: showSold ? "1" : "",
+      near: nearOnly ? "1" : "",
+      ...next,
+    };
     for (const [k, v] of Object.entries(merged)) if (v) params.set(k, v);
     const qs = params.toString();
     return qs ? `/products?${qs}` : "/products";
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-soil-900">중고거래</h1>
-        <Link
-          href="/products/new"
-          className="rounded-xl bg-goguma-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-goguma-600"
-        >
+        <div>
+          <h1 className="text-[1.6rem] font-bold tracking-tight text-soil-900">
+            중고거래
+          </h1>
+          <p className="mt-1 text-sm text-soil-500">
+            {myRegion
+              ? `${myRegion} 이웃들이 내놓은 물건`
+              : "우리 동네 이웃들이 내놓은 물건"}
+          </p>
+        </div>
+        <Link href="/products/new" className="btn btn-primary">
           + 판매하기
         </Link>
       </div>
@@ -68,23 +102,17 @@ export default async function ProductListPage({
         />
         {category && <input type="hidden" name="category" value={category} />}
         {showSold && <input type="hidden" name="sold" value="1" />}
-        <button
-          type="submit"
-          className="rounded-xl border border-soil-200 bg-white px-4 text-sm font-semibold text-soil-600 transition hover:bg-soil-50"
-        >
+        {nearOnly && <input type="hidden" name="near" value="1" />}
+        <button type="submit" className="btn btn-outline">
           검색
         </button>
       </form>
 
-      <div className="-mx-4 overflow-x-auto px-4">
+      <div className="-mx-4 overflow-x-auto px-4 no-scrollbar">
         <div className="flex w-max gap-2 pb-1">
           <Link
             href={linkFor({ category: "" })}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-sm transition ${
-              category === ""
-                ? "bg-goguma-500 font-semibold text-white"
-                : "border border-soil-200 bg-white text-soil-600 hover:bg-goguma-50"
-            }`}
+            className={`chip ${category === "" ? "chip-on" : ""}`}
           >
             전체
           </Link>
@@ -92,11 +120,7 @@ export default async function ProductListPage({
             <Link
               key={c}
               href={linkFor({ category: c })}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-sm transition ${
-                category === c
-                  ? "bg-goguma-500 font-semibold text-white"
-                  : "border border-soil-200 bg-white text-soil-600 hover:bg-goguma-50"
-              }`}
+              className={`chip ${category === c ? "chip-on" : ""}`}
             >
               {c}
             </Link>
@@ -104,29 +128,49 @@ export default async function ProductListPage({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-soil-600">
-        <span>{products.length}개</span>
-        <Link href={linkFor({ sold: showSold ? "" : "1" })} className="hover:underline">
-          {showSold ? "거래완료 숨기기" : "거래완료도 보기"}
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-y border-soil-100 py-2.5">
+        <span className="text-sm font-medium text-soil-600">
+          {products.length}개
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {myRegion ? (
+            <Link
+              href={linkFor({ near: nearOnly ? "" : "1" })}
+              className={`chip btn-sm ${nearOnly ? "chip-on" : ""}`}
+            >
+              📍 {myRegion}만
+            </Link>
+          ) : (
+            <Link href="/mypage/edit" className="chip btn-sm">
+              📍 내 동네 정하기
+            </Link>
+          )}
+          <Link
+            href={linkFor({ sold: showSold ? "" : "1" })}
+            className={`chip btn-sm ${showSold ? "chip-on" : ""}`}
+          >
+            거래완료 포함
+          </Link>
+        </div>
       </div>
 
       {error ? (
-        <p className="rounded-2xl bg-red-50 px-4 py-6 text-center text-sm text-red-700">
+        <p className="card px-4 py-6 text-center text-sm text-red-700">
           목록을 불러오지 못했습니다: {error.message}
         </p>
       ) : products.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-soil-200 px-4 py-16 text-center">
-          <p className="text-3xl">🍠</p>
+          <p className="text-3xl opacity-70">🍠</p>
           <p className="mt-3 text-soil-600">
-            {q || category ? "조건에 맞는 물건이 없습니다." : "아직 올라온 물건이 없습니다."}
+            {q || category || nearOnly
+              ? "조건에 맞는 물건이 없습니다."
+              : "아직 올라온 물건이 없습니다."}
           </p>
-          <Link
-            href="/products/new"
-            className="mt-4 inline-block rounded-xl bg-goguma-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-goguma-600"
-          >
-            첫 물건 올리기
-          </Link>
+          {(q || category || nearOnly) && (
+            <Link href="/products" className="mt-4 inline-flex btn btn-outline">
+              조건 모두 지우기
+            </Link>
+          )}
         </div>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

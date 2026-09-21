@@ -39,10 +39,10 @@ export default function FavoriteButton({ productId, isFavorited, count }: Props)
       onClick={handleClick}
       aria-pressed={optimistic.on}
       aria-label={optimistic.on ? "찜 취소" : "찜하기"}
-      className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+      className={`btn py-3 ${
         optimistic.on
-          ? "border-goguma-300 bg-goguma-100 text-goguma-700"
-          : "border-soil-200 bg-white text-soil-600 hover:bg-goguma-50"
+          ? "border border-goguma-300 bg-goguma-100 text-goguma-700"
+          : "btn-outline"
       }`}
     >
       <span className="text-base leading-none">{optimistic.on ? "❤️" : "🤍"}</span>

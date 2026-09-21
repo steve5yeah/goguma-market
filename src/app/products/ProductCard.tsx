@@ -14,11 +14,11 @@ export default function ProductCard({ product }: { product: ProductWithSeller })
   return (
     <Link
       href={`/products/${product.id}`}
-      className="group flex gap-4 rounded-2xl border border-soil-200 bg-white p-3 transition hover:border-goguma-300 hover:shadow-sm sm:flex-col sm:p-0 sm:pb-4"
+      className="group flex gap-3.5 overflow-hidden rounded-2xl border border-soil-200 bg-white p-3 transition duration-200 hover:-translate-y-0.5 hover:border-goguma-200 hover:shadow-[var(--shadow-lift)] sm:block sm:p-0 sm:pb-3.5"
     >
       <div
-        className={`relative size-24 shrink-0 overflow-hidden rounded-xl bg-goguma-100 sm:size-auto sm:aspect-square sm:w-full sm:rounded-b-none sm:rounded-t-2xl ${
-          dimmed ? "opacity-55" : ""
+        className={`relative size-[5.5rem] shrink-0 overflow-hidden rounded-xl bg-goguma-100 sm:size-auto sm:aspect-square sm:w-full sm:rounded-b-none sm:rounded-t-2xl ${
+          dimmed ? "opacity-50" : ""
         }`}
       >
         {product.image_url ? (
@@ -26,36 +26,42 @@ export default function ProductCard({ product }: { product: ProductWithSeller })
             src={product.image_url}
             alt={product.title}
             fill
-            sizes="(max-width: 640px) 96px, 260px"
-            className="object-cover transition group-hover:scale-[1.03]"
+            sizes="(max-width: 640px) 88px, (max-width: 1024px) 50vw, 260px"
+            className="object-cover transition duration-300 group-hover:scale-105"
           />
         ) : (
-          <span className="flex h-full w-full items-center justify-center text-3xl">
+          <span className="flex h-full w-full items-center justify-center text-3xl opacity-60">
             🍠
+          </span>
+        )}
+
+        {product.status !== "selling" && (
+          <span
+            className={`absolute left-2 top-2 rounded-lg px-1.5 py-0.5 text-[0.7rem] font-semibold shadow-sm ${status.className}`}
+          >
+            {status.label}
           </span>
         )}
       </div>
 
-      <div className="min-w-0 flex-1 sm:px-4">
-        <div className="mb-1 flex items-center gap-1.5">
-          {product.status !== "selling" && (
-            <span
-              className={`rounded-md px-1.5 py-0.5 text-[0.7rem] font-semibold ${status.className}`}
-            >
-              {status.label}
-            </span>
-          )}
-          <p className="truncate text-sm font-medium text-soil-900">
-            {product.title}
-          </p>
-        </div>
-        <p className="font-bold text-soil-900">{formatPrice(product.price)}</p>
-        <p className="mt-1 truncate text-xs text-soil-400">
-          {product.goguma_profiles?.nickname ?? "탈퇴한 사용자"}
-          {product.region ? ` · ${product.region}` : ""} · {timeAgo(product.created_at)}
+      <div className="flex min-w-0 flex-1 flex-col sm:px-3.5 sm:pt-3">
+        <p className="line-clamp-2 text-[0.9rem] leading-snug text-soil-800">
+          {product.title}
         </p>
-        {product.favorite_count > 0 && (
-          <p className="mt-1 text-xs text-soil-400">❤️ {product.favorite_count}</p>
+        <p className="mt-1 text-[1.05rem] font-bold text-soil-900">
+          {formatPrice(product.price)}
+        </p>
+
+        <p className="mt-auto truncate pt-2 text-xs text-soil-400">
+          {product.region ? `${product.region} · ` : ""}
+          {timeAgo(product.created_at)}
+        </p>
+
+        {(product.favorite_count > 0 || product.view_count > 0) && (
+          <p className="mt-1 flex items-center gap-2.5 text-xs text-soil-400">
+            {product.favorite_count > 0 && <span>❤️ {product.favorite_count}</span>}
+            {product.view_count > 0 && <span>조회 {product.view_count}</span>}
+          </p>
         )}
       </div>
     </Link>

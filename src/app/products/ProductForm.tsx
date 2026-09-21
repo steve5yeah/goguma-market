@@ -10,7 +10,13 @@ import ImageUploader from "./ImageUploader";
 const initialState: ProductFormState = {};
 
 /** 등록과 수정이 같은 폼을 씁니다. product가 있으면 수정 모드입니다. */
-export default function ProductForm({ product }: { product?: Product }) {
+export default function ProductForm({
+  product,
+  defaultRegion = "",
+}: {
+  product?: Product;
+  defaultRegion?: string;
+}) {
   const isEdit = Boolean(product);
   const [state, formAction] = useActionState(
     isEdit ? updateProduct : createProduct,
@@ -105,7 +111,7 @@ export default function ProductForm({ product }: { product?: Product }) {
           name="region"
           type="text"
           maxLength={30}
-          defaultValue={v?.region ?? product?.region ?? ""}
+          defaultValue={v?.region ?? product?.region ?? defaultRegion}
           placeholder="예) 역삼동, 강남역 5번 출구"
           className="field"
         />
@@ -142,7 +148,7 @@ export default function ProductForm({ product }: { product?: Product }) {
       <div className="flex gap-3">
         <Link
           href={isEdit ? `/products/${product!.id}` : "/products"}
-          className="rounded-xl border border-soil-200 bg-white px-5 py-3 text-sm font-semibold text-soil-600 transition hover:bg-soil-50"
+          className="btn btn-outline"
         >
           취소
         </Link>

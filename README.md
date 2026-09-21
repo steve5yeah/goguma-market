@@ -8,18 +8,20 @@
 - **2단계 — 거래글 등록 · 목록 · 상세 · 수정 · 삭제** ✅
 - **3단계(1) — 찜하기** ✅
 - **3단계(2) — 채팅** ✅
+- **4단계 — 동네 설정 · 조회수 · 프로필 수정 · 디자인 정리** ✅
 
 ## 화면
 
 | 경로 | 내용 |
 | --- | --- |
 | `/` | 홈 — 방금 올라온 물건 8개 |
-| `/products` | 목록 — 검색, 카테고리 필터, 거래완료 숨기기 |
+| `/products` | 목록 — 검색, 카테고리, 내 동네만, 거래완료 포함 |
 | `/products/new` | 판매하기 (로그인 필요) |
 | `/products/[id]` | 상세 — 글쓴이에게만 상태 변경·수정·삭제 버튼 |
 | `/products/[id]/edit` | 글 수정 (글쓴이만) |
 | `/signup` `/login` | 회원가입 · 로그인 |
-| `/mypage` | 내 정보 + 내 판매글 (로그인 필요) |
+| `/mypage` | 내 정보 + 통계 + 내 판매글 (로그인 필요) |
+| `/mypage/edit` | 프로필 수정 — 닉네임, 우리 동네 (로그인 필요) |
 | `/favorites` | 찜한 물건 (로그인 필요) |
 | `/chat` | 채팅방 목록 — 안 읽은 개수 표시 (로그인 필요) |
 | `/chat/[roomId]` | 대화 화면 — 실시간 수신 (그 방 사람만) |
@@ -45,7 +47,7 @@ npm run dev
 | 테이블 | 내용 |
 | --- | --- |
 | `goguma_profiles` | 사용자 프로필 (`id` = `auth.users.id`, `nickname`, `region`, `avatar_url`) |
-| `goguma_products` | 거래글 (`seller_id`, `title`, `description`, `price`, `category`, `region`, `status`, `image_url`, `image_path`, `favorite_count`) |
+| `goguma_products` | 거래글 (… `favorite_count`, `view_count`) |
 | `goguma_favorites` | 찜 기록 (`user_id` + `product_id`가 기본키라 같은 글을 두 번 찜할 수 없음) |
 | `goguma_chat_rooms` | 채팅방 (`product_id` + `buyer_id`가 유일. 글 1개 + 구매희망자 1명당 방 하나) |
 | `goguma_chat_messages` | 메시지 (`read_at`이 비어 있으면 상대가 아직 안 읽음) |
@@ -106,22 +108,28 @@ src/
 └─ components/                  SiteHeader · SubmitButton · GogumaLogo
 ```
 
-## 색
+## 디자인
 
-군고구마에서 가져왔습니다. `globals.css`의 `@theme`에 정의돼 있어 `bg-goguma-500`처럼 바로 씁니다.
+군고구마에서 가져온 색을 `globals.css`의 `@theme`에 정의해 두고 `bg-goguma-500`처럼 씁니다.
 
 | 이름 | 쓰임 | 대표 색 |
 | --- | --- | --- |
 | `goguma-*` | 속살 주황 — 버튼, 강조 | `#e87f2a` (500) |
 | `skin-*` | 껍질 자주 — 로고, 예약중 | `#6d2f55` (700) |
-| `soil-*` | 흙 — 글자, 테두리 | `#3d332b` (800) |
+| `soil-*` | 흙 — 글자, 테두리 | `#3a3128` (800) |
+
+버튼·카드·칩처럼 여러 화면에서 반복되는 모양은 `globals.css`의 `@layer components` 안에 `.btn` `.btn-primary` `.btn-outline` `.card` `.chip` 으로 묶어 두었습니다. 화면마다 긴 클래스를 복사하지 않아도 되고, 한 곳만 고치면 전체가 바뀝니다.
+
+> `@layer components` 안에 넣는 것이 중요합니다. 밖에 두면 이 스타일이 Tailwind 유틸리티(`hidden`, `w-full` 등)를 이겨 버려서, `class="btn hidden"` 처럼 써도 숨겨지지 않습니다.
+
+글꼴은 `next/font`로 **Noto Sans KR**을 받아 함께 내보냅니다. 외부 사이트를 거치지 않아 글자가 늦게 뜨거나 깜빡이지 않습니다.
+
+좁은 화면(휴대폰)에서는 헤더 메뉴 대신 화면 아래 탭 막대(`MobileNav`)가 나옵니다.
 
 ## 알아 둘 점
 
 - **사진은 글 1개당 1장**입니다. 여러 장은 나중에 `goguma_product_images` 같은 표를 따로 두는 쪽이 깔끔합니다.
 - **버려진 사진 파일** — 사진만 올리고 글을 저장하지 않으면 그 파일은 Storage에 남습니다. 나중에 주기적으로 청소하는 작업이 필요합니다.
-- **닉네임 중복**은 아직 막지 않았습니다.
-- 조회수는 아직 없습니다.
 - 채팅에 사진·이모지 전송은 없습니다. 글자만 주고받습니다.
 - 채팅 알림은 화면 안 배지뿐입니다. 메일이나 푸시 알림은 없습니다.
 
@@ -148,6 +156,12 @@ SITE_URL=http://localhost:3000        # 배포 환경에서는 실제 주소
 그래서 접두사 없이 넣어 두고, `next.config.ts`의 `env` 항목에서 `NEXT_PUBLIC_*` 이름으로 옮겨 담습니다. 코드는 계속 `process.env.NEXT_PUBLIC_SUPABASE_URL`을 읽고, 값은 `SUPABASE_URL`에서 옵니다. (예전처럼 `NEXT_PUBLIC_`을 붙여 넣어도 그대로 동작합니다.)
 
 > `NEXT_PUBLIC_`은 보안 설정이 아니라 "브라우저에도 내보낸다"는 표시일 뿐입니다. 접두사를 떼도 값이 숨겨지지는 않습니다. `SUPABASE_ANON_KEY`는 원래 공개돼도 되는 publishable 키이고, 데이터 보호는 RLS가 담당합니다. 절대 공개하면 안 되는 건 `service_role` 키인데 이 프로젝트에서는 쓰지 않습니다.
+
+### 조회수
+
+조회수는 화면이 뜰 때 브라우저가 `goguma_increment_view()` 함수를 불러 1 올립니다. 같은 탭에서 같은 글을 다시 열면 세지 않도록 `sessionStorage`에 표시해 둡니다.
+
+> 이 함수는 로그인하지 않은 손님도 부를 수 있게 열려 있습니다(손님도 글을 보니까). 그래서 Supabase 보안 린터가 경고를 띄우는데, **의도한 상태**입니다. 이 함수로는 조회수 외에 아무것도 바꿀 수 없습니다. 다만 반복 호출로 조회수를 부풀릴 수는 있어서, 진짜 서비스라면 호출 제한이 필요합니다.
 
 ### 실시간(Realtime)
 

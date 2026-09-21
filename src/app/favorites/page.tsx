@@ -42,7 +42,7 @@ export default async function FavoritesPage() {
           </p>
           <Link
             href="/products"
-            className="mt-4 inline-block rounded-xl bg-goguma-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-goguma-600"
+            className="mt-4 inline-flex btn btn-primary"
           >
             물건 구경하기
           </Link>

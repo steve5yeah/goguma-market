@@ -76,13 +76,13 @@ export default async function ChatListPage() {
           </p>
           <Link
             href="/products"
-            className="mt-4 inline-block rounded-xl bg-goguma-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-goguma-600"
+            className="mt-4 inline-flex btn btn-primary"
           >
             물건 구경하기
           </Link>
         </div>
       ) : (
-        <ul className="divide-y divide-soil-100 overflow-hidden rounded-2xl border border-soil-200 bg-white">
+        <ul className="card divide-y divide-soil-100 overflow-hidden">
           {rooms.map((room) => {
             const iAmSeller = room.seller_id === user.id;
             const other = iAmSeller ? room.buyer : room.seller;

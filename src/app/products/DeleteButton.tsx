@@ -13,7 +13,7 @@ function ConfirmButtons({ onCancel }: { onCancel: () => void }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+        className="btn btn-sm bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
       >
         {pending ? "지우는 중…" : "네, 지웁니다"}
       </button>
@@ -21,7 +21,7 @@ function ConfirmButtons({ onCancel }: { onCancel: () => void }) {
         type="button"
         onClick={onCancel}
         disabled={pending}
-        className="rounded-lg border border-soil-200 bg-white px-3 py-2 text-sm font-medium text-soil-600 transition hover:bg-soil-50"
+        className="btn btn-outline btn-sm"
       >
         아니요
       </button>
@@ -37,7 +37,7 @@ export default function DeleteButton({ productId }: { productId: string }) {
       <button
         type="button"
         onClick={() => setAsking(true)}
-        className="rounded-lg border border-soil-200 bg-white px-3 py-2 text-sm font-medium text-soil-600 transition hover:bg-red-50 hover:text-red-700"
+        className="btn btn-outline btn-sm hover:bg-red-50 hover:text-red-700"
       >
         삭제
       </button>

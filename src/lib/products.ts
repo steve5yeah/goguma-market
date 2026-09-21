@@ -35,6 +35,7 @@ export type Product = {
   image_url: string | null;
   image_path: string | null;
   favorite_count: number;
+  view_count: number;
   created_at: string;
   updated_at: string;
 };

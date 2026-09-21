@@ -19,7 +19,7 @@ function SendButton() {
     <button
       type="submit"
       disabled={pending}
-      className="shrink-0 rounded-xl bg-goguma-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-goguma-600 disabled:bg-goguma-300"
+      className="btn btn-primary shrink-0 py-3"
     >
       보내기
     </button>
