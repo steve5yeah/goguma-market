@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** 로그인이 필요한 경로 (앞부분만 맞으면 보호) */
-const PROTECTED_PATHS = ["/mypage", "/favorites", "/products/new"];
+const PROTECTED_PATHS = ["/mypage", "/favorites", "/chat", "/products/new"];
 
 /**
  * 모든 요청에서 세션 쿠키를 새로 고치고, 보호 경로는 로그인 페이지로 돌려보냅니다.

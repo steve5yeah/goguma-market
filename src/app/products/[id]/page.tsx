@@ -11,6 +11,8 @@ import {
 import DeleteButton from "../DeleteButton";
 import StatusButtons from "../StatusButtons";
 import FavoriteButton from "../FavoriteButton";
+import ChatButton from "../ChatButton";
+import { startChat } from "@/app/chat/actions";
 
 type Params = Promise<{ id: string }>;
 
@@ -140,24 +142,15 @@ export default async function ProductDetailPage({ params }: { params: Params }) 
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="flex gap-3">
-            <FavoriteButton
-              productId={product.id}
-              isFavorited={isFavorited}
-              count={product.favorite_count}
-            />
-            <button
-              type="button"
-              disabled
-              className="flex-1 cursor-not-allowed rounded-xl bg-goguma-300 px-4 py-3 text-sm font-semibold text-white"
-            >
-              채팅하기 (준비 중)
-            </button>
-          </div>
-          <p className="text-center text-xs text-soil-400">
-            채팅은 3단계 나머지 작업에서 만듭니다.
-          </p>
+        <div className="flex gap-3">
+          <FavoriteButton
+            productId={product.id}
+            isFavorited={isFavorited}
+            count={product.favorite_count}
+          />
+          <form action={startChat.bind(null, product.id)} className="flex-1">
+            <ChatButton />
+          </form>
         </div>
       )}
     </article>

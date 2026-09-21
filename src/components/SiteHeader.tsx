@@ -10,6 +10,7 @@ export default async function SiteHeader() {
   } = await supabase.auth.getUser();
 
   let nickname: string | null = null;
+  let unreadCount = 0;
   if (user) {
     const { data: profile } = await supabase
       .from("goguma_profiles")
@@ -17,6 +18,14 @@ export default async function SiteHeader() {
       .eq("id", user.id)
       .maybeSingle();
     nickname = profile?.nickname ?? null;
+
+    // 안 읽은 채팅 개수 (RLS 덕분에 내가 낀 방의 메시지만 세어집니다)
+    const { count } = await supabase
+      .from("goguma_chat_messages")
+      .select("id", { count: "exact", head: true })
+      .neq("sender_id", user.id)
+      .is("read_at", null);
+    unreadCount = count ?? 0;
   }
 
   return (
@@ -36,12 +45,25 @@ export default async function SiteHeader() {
             중고거래
           </Link>
           {user && (
-            <Link
-              href="/favorites"
-              className="hidden text-sm font-medium text-soil-600 transition hover:text-goguma-600 sm:block"
-            >
-              찜한 물건
-            </Link>
+            <>
+              <Link
+                href="/favorites"
+                className="hidden text-sm font-medium text-soil-600 transition hover:text-goguma-600 sm:block"
+              >
+                찜한 물건
+              </Link>
+              <Link
+                href="/chat"
+                className="flex items-center gap-1 text-sm font-medium text-soil-600 transition hover:text-goguma-600"
+              >
+                채팅
+                {unreadCount > 0 && (
+                  <span className="rounded-full bg-goguma-500 px-1.5 py-0.5 text-[0.65rem] font-bold leading-none text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </Link>
+            </>
           )}
         </div>
 

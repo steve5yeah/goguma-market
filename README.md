@@ -7,7 +7,7 @@
 - **1단계 — 회원가입 / 로그인 / 로그아웃** ✅
 - **2단계 — 거래글 등록 · 목록 · 상세 · 수정 · 삭제** ✅
 - **3단계(1) — 찜하기** ✅
-- 3단계(2) — 채팅 (예정)
+- **3단계(2) — 채팅** ✅
 
 ## 화면
 
@@ -21,6 +21,8 @@
 | `/signup` `/login` | 회원가입 · 로그인 |
 | `/mypage` | 내 정보 + 내 판매글 (로그인 필요) |
 | `/favorites` | 찜한 물건 (로그인 필요) |
+| `/chat` | 채팅방 목록 — 안 읽은 개수 표시 (로그인 필요) |
+| `/chat/[roomId]` | 대화 화면 — 실시간 수신 (그 방 사람만) |
 
 ## 처음 실행하기
 
@@ -45,6 +47,8 @@ npm run dev
 | `goguma_profiles` | 사용자 프로필 (`id` = `auth.users.id`, `nickname`, `region`, `avatar_url`) |
 | `goguma_products` | 거래글 (`seller_id`, `title`, `description`, `price`, `category`, `region`, `status`, `image_url`, `image_path`, `favorite_count`) |
 | `goguma_favorites` | 찜 기록 (`user_id` + `product_id`가 기본키라 같은 글을 두 번 찜할 수 없음) |
+| `goguma_chat_rooms` | 채팅방 (`product_id` + `buyer_id`가 유일. 글 1개 + 구매희망자 1명당 방 하나) |
+| `goguma_chat_messages` | 메시지 (`read_at`이 비어 있으면 상대가 아직 안 읽음) |
 
 - 가입하면 트리거(`goguma_on_auth_user_created`)가 프로필을 자동으로 만듭니다.
 - `status`는 `selling` · `reserved` · `sold` 셋 중 하나입니다.
@@ -61,6 +65,8 @@ npm run dev
 | `goguma_profiles` | 누구나 | 본인 | 본인 |
 | `goguma_products` | 누구나 | 로그인 사용자(자기 글) | 글쓴이만 |
 | `goguma_favorites` | **본인 것만** | 본인 | 본인 |
+| `goguma_chat_rooms` | **그 방의 두 사람만** | 구매희망자 | — |
+| `goguma_chat_messages` | **그 방의 두 사람만** | 그 방 사람 | 읽음 표시만, 받는 쪽이 |
 
 남의 글은 UI에서 버튼이 안 보일 뿐 아니라 DB에서도 막힙니다. 다른 사용자로 `update`/`delete`를 직접 날려도 0행이 바뀝니다.
 
@@ -79,20 +85,22 @@ npm run dev
 
 ```
 src/
-├─ middleware.ts                세션 갱신 + /mypage, /favorites, /products/new 보호
+├─ middleware.ts                세션 갱신 + /mypage, /favorites, /chat, /products/new 보호
 ├─ lib/
 │  ├─ products.ts               카테고리·상태 목록, 가격/시간 표시 함수
+│  ├─ chat.ts                   메시지 타입, 시각/날짜 표시 함수
 │  └─ supabase/                 client · server · middleware 클라이언트
 ├─ app/
 │  ├─ layout.tsx  globals.css   공통 틀과 고구마 색 팔레트
 │  ├─ page.tsx                  홈
 │  ├─ auth/                     actions.ts (가입·로그인·로그아웃) + 메일 링크 라우트
 │  ├─ login/  signup/  mypage/  favorites/
+│  ├─ chat/                 actions.ts · page.tsx(방 목록) · ChatRoom.tsx · [roomId]/page.tsx
 │  └─ products/
 │     ├─ actions.ts             createProduct · updateProduct · deleteProduct · updateStatus · toggleFavorite
 │     ├─ page.tsx               목록
 │     ├─ ProductCard.tsx  ProductForm.tsx  ImageUploader.tsx
-│     ├─ DeleteButton.tsx  StatusButtons.tsx  FavoriteButton.tsx
+│     ├─ DeleteButton.tsx  StatusButtons.tsx  FavoriteButton.tsx  ChatButton.tsx
 │     ├─ new/page.tsx
 │     └─ [id]/page.tsx  [id]/edit/page.tsx
 └─ components/                  SiteHeader · SubmitButton · GogumaLogo
@@ -113,7 +121,9 @@ src/
 - **사진은 글 1개당 1장**입니다. 여러 장은 나중에 `goguma_product_images` 같은 표를 따로 두는 쪽이 깔끔합니다.
 - **버려진 사진 파일** — 사진만 올리고 글을 저장하지 않으면 그 파일은 Storage에 남습니다. 나중에 주기적으로 청소하는 작업이 필요합니다.
 - **닉네임 중복**은 아직 막지 않았습니다.
-- 조회수와 채팅은 아직 없습니다. 채팅은 3단계 나머지 작업입니다.
+- 조회수는 아직 없습니다.
+- 채팅에 사진·이모지 전송은 없습니다. 글자만 주고받습니다.
+- 채팅 알림은 화면 안 배지뿐입니다. 메일이나 푸시 알림은 없습니다.
 
 ## 샘플 데이터
 
@@ -138,6 +148,12 @@ SITE_URL=http://localhost:3000        # 배포 환경에서는 실제 주소
 그래서 접두사 없이 넣어 두고, `next.config.ts`의 `env` 항목에서 `NEXT_PUBLIC_*` 이름으로 옮겨 담습니다. 코드는 계속 `process.env.NEXT_PUBLIC_SUPABASE_URL`을 읽고, 값은 `SUPABASE_URL`에서 옵니다. (예전처럼 `NEXT_PUBLIC_`을 붙여 넣어도 그대로 동작합니다.)
 
 > `NEXT_PUBLIC_`은 보안 설정이 아니라 "브라우저에도 내보낸다"는 표시일 뿐입니다. 접두사를 떼도 값이 숨겨지지는 않습니다. `SUPABASE_ANON_KEY`는 원래 공개돼도 되는 publishable 키이고, 데이터 보호는 RLS가 담당합니다. 절대 공개하면 안 되는 건 `service_role` 키인데 이 프로젝트에서는 쓰지 않습니다.
+
+### 실시간(Realtime)
+
+채팅은 Supabase Realtime을 씁니다. `goguma_chat_messages`를 `supabase_realtime` 발행 목록에 넣어 두었고, 브라우저에서 `postgres_changes`로 그 방의 새 메시지만 구독합니다.
+
+> 이 표는 RLS로 잠겨 있어서, 실시간 연결에도 **로그인 토큰을 따로 알려 줘야**(`supabase.realtime.setAuth`) 메시지가 옵니다. 안 그러면 구독은 되는데 아무것도 안 들어옵니다.
 
 ### 배포 후 할 일
 
